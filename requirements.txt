@@ -1,0 +1,7 @@
+# MSFS Tablet Tracker — Python dependencies (Python 3.9+, 3.11+ recommended)
+aiohttp>=3.9.5,<3.12  # HTTP + WebSocket server (3.12+ incompatible with Python <= 3.10)
+python-dotenv>=1.0    # .env file loading
+qrcode>=7.4           # ASCII QR code in the console
+certifi>=2024.2       # up-to-date CA bundle (fixes HTTPS cert errors on Windows)
+SimConnect>=0.4.26    # MSFS link (Python-SimConnect) — Windows only
+pillow>=10.0

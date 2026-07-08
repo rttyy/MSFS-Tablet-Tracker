@@ -1,0 +1,21 @@
+# Secrets & per-install configuration
+.env
+
+# Runtime data (logbook, flight archives, downloaded databases, caches)
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# PyInstaller build outputs
+build/
+dist/
+*.spec
+
+# Editor backups
+*.bak
+
+# Local tooling / session config
+.claude/

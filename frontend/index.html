@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b0f14">
+  <title>MSFS Tablet Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44'%3E%3Cpath d='M22 4 L25 14 L38 22 L38 26 L25 22 L24.5 32 L29 36 L29 39 L22 37 L15 39 L15 36 L19.5 32 L19 22 L6 26 L6 22 L19 14 Z' fill='%23ffd21f' stroke='%231b1b1b' stroke-width='1.6'/%3E%3C/svg%3E">
+
+  <!-- Leaflet (CDN — cached by the browser after the first load) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="style.css?v=2.0.0">
+</head>
+<body>
+  <!-- ======================= MAP ======================= -->
+  <div id="map"></div>
+
+  <!-- ================= PFD STRIP (top) ================= -->
+  <header id="pfd">
+    <div class="pfd-cell">
+      <span class="pfd-label">IAS</span>
+      <span class="pfd-value" id="pfd-ias">---</span>
+      <span class="pfd-unit">kt</span>
+    </div>
+    <div class="pfd-cell">
+      <span class="pfd-label">GS</span>
+      <span class="pfd-value" id="pfd-gs">---</span>
+      <span class="pfd-unit">kt</span>
+    </div>
+    <div class="pfd-cell pfd-hdg">
+      <span class="pfd-label">HDG</span>
+      <span class="pfd-value" id="pfd-hdg">---</span>
+      <span class="pfd-unit">°</span>
+    </div>
+    <div class="pfd-cell">
+      <span class="pfd-label">ALT</span>
+      <span class="pfd-value" id="pfd-alt">-----</span>
+      <span class="pfd-unit">ft</span>
+    </div>
+    <div class="pfd-cell">
+      <span class="pfd-label">V/S</span>
+      <span class="pfd-value" id="pfd-vs">----</span>
+      <span class="pfd-unit">fpm</span>
+    </div>
+    <div class="pfd-cell pfd-wx" id="pfd-wx" title="In-sim weather">
+      <span class="pfd-label">WIND</span>
+      <span class="pfd-value small" id="pfd-wind">---</span>
+      <span class="pfd-unit" id="pfd-oat">--°C</span>
+    </div>
+  </header>
+
+  <!-- ================= Status pill (top right) ================= -->
+  <div id="status-pill" title="MSFS link status">
+    <span class="dot"></span><span id="status-text">CONNECTING…</span>
+  </div>
+
+  <!-- ============ Flight plan status bar (below the PFD) ============ -->
+  <div id="plan-bar" class="hidden">
+    <span id="plan-route">---- → ----</span>
+    <span class="sep">|</span>
+    <span>→ <b id="plan-next">---</b></span>
+    <span class="sep">|</span>
+    <span><b id="plan-dist">---</b> NM</span>
+    <span class="sep">|</span>
+    <span>ETE <b id="plan-ete">--:--</b></span>
+    <span id="plan-fob" class="hidden"><span class="sep">|</span>
+      <span>FOB@dest <b id="fob-dest">----</b> kg</span></span>
+    <span id="plan-tod" class="hidden"><span class="sep">|</span>
+      <span class="tod-alert">TOD in <b id="tod-dist">--</b> NM</span></span>
+  </div>
+
+  <!-- ============ System bar: Zulu clock, chrono, systems, fuel ============ -->
+  <div id="sys-bar">
+    <span class="sys-chip mono" id="sys-zulu">--:--:--Z</span>
+    <button class="sys-chip mono" id="sys-chrono" title="Tap: start / stop / reset">CHR 00:00</button>
+    <span class="sys-chip sys-toggle" id="sys-gear">GEAR</span>
+    <span class="sys-chip sys-toggle" id="sys-flaps">FLAPS</span>
+    <span class="sys-chip mono" id="sys-fuel">FUEL ---- kg · --:--</span>
+  </div>
+
+  <!-- ================= HSI / mini moving-map ================= -->
+  <canvas id="hsi" width="180" height="180" title="HSI — heading and course"></canvas>
+
+  <!-- ============ Vertical profile (bottom strip, collapsible) ============ -->
+  <div id="profile-strip" class="hidden">
+    <canvas id="profile-canvas"></canvas>
+  </div>
+
+  <!-- ================= Floating buttons (right) ================= -->
+  <nav id="toolbar">
+    <button id="btn-recenter" class="tool active" title="Auto tracking">◎</button>
+    <button id="btn-metar" class="tool" title="Departure / arrival METAR">☁</button>
+    <button id="btn-freqs" class="tool" title="Radio frequencies">📻</button>
+    <button id="btn-profile" class="tool" title="Vertical profile">📈</button>
+    <button id="btn-replay" class="tool" title="Flight replay">▶</button>
+    <button id="btn-logbook" class="tool" title="Logbook">📓</button>
+    <button id="btn-night" class="tool" title="Night mode">☾</button>
+    <button id="btn-fullscreen" class="tool" title="Fullscreen">⛶</button>
+    <button id="btn-settings" class="tool" title="Settings">⚙</button>
+  </nav>
+
+  <!-- ================= Toast container ================= -->
+  <div id="toasts"></div>
+
+  <!-- ================= Alert banner ================= -->
+  <div id="alert-banner" class="hidden"></div>
+
+  <!-- ============ Landing rating card ============ -->
+  <div id="landing-card" class="hidden">
+    <div class="lc-rating" id="lc-rating">SMOOTH</div>
+    <div class="lc-vs"><b id="lc-vs">-142</b> fpm</div>
+    <div class="lc-detail" id="lc-detail">1.12 G · 128 kt</div>
+    <div id="lc-badges" class="hidden"></div>
+    <div class="lc-actions">
+      <button id="lc-card" class="hidden">Flight card</button>
+      <button id="lc-close">OK</button>
+    </div>
+  </div>
+
+  <!-- ================= Replay bar ================= -->
+  <div id="replay-bar" class="hidden">
+    <button id="rp-play">▶</button>
+    <input id="rp-slider" type="range" min="0" max="0" value="0">
+    <span id="rp-info" class="mono">--:-- · ---- ft</span>
+    <button id="rp-exit">✕</button>
+  </div>
+
+  <!-- ================= Connection banner ================= -->
+  <div id="conn-banner" class="hidden">
+    <span id="conn-text">Connecting to the server…</span>
+    <button id="conn-close" title="Hide for one minute">✕</button>
+  </div>
+
+  <!-- ================= METAR panel ================= -->
+  <aside id="metar-panel" class="hidden">
+    <div class="metar-head">
+      <h2>METAR</h2>
+      <span class="hint" id="metar-updated"></span>
+      <button id="metar-refresh" title="Refresh">⟳</button>
+      <button id="metar-close" title="Close">✕</button>
+    </div>
+    <div id="metar-content">
+      <p class="hint">Load a SimBrief plan (⚙ Settings) to display the
+      departure and arrival METARs.</p>
+    </div>
+  </aside>
+
+  <!-- ================= Frequencies panel ================= -->
+  <aside id="freqs-panel" class="hidden">
+    <div class="metar-head">
+      <h2>FREQUENCIES</h2>
+      <button id="freqs-refresh" title="Refresh">⟳</button>
+      <button id="freqs-close" title="Close">✕</button>
+    </div>
+    <div id="freqs-content">
+      <p class="hint">Load a SimBrief plan to display the departure and
+      arrival frequencies and the FIRs along your route.</p>
+    </div>
+  </aside>
+
+  <!-- ================= Logbook panel ================= -->
+  <aside id="ach-panel" class="hidden">
+    <div class="metar-head">
+      <h2>ACHIEVEMENTS <span id="ach-count" class="hint" style="font-weight:normal"></span></h2>
+      <button id="ach-refresh" title="Refresh">⟳</button>
+      <button id="ach-close" title="Back to logbook">✕</button>
+    </div>
+    <div id="ach-content" class="metar-content"></div>
+  </aside>
+
+  <aside id="logbook-panel" class="hidden">
+    <div class="metar-head">
+      <h2>LOGBOOK</h2>
+      <button id="logbook-refresh" title="Refresh">⟳</button>
+      <button id="logbook-close" title="Close">✕</button>
+    </div>
+    <div id="logbook-content"><p class="hint">No flights recorded yet.</p></div>
+  </aside>
+
+  <!-- ================= Settings panel ================= -->
+  <aside id="settings" class="hidden">
+    <div class="metar-head">
+      <h2>SETTINGS</h2>
+      <button id="settings-x" title="Close">✕</button>
+    </div>
+
+    <section>
+      <h3>Connection</h3>
+      <p class="hint">To connect another tablet or screen, scan this code
+      or type the address:</p>
+      <div class="qr-box">
+        <img id="qr-img" src="/api/qr.svg" alt="Connection QR code">
+        <span class="mono" id="cfg-url">http://…</span>
+      </div>
+    </section>
+
+    <section>
+      <h3>SimBrief</h3>
+      <label for="sb-id">Pilot ID or username</label>
+      <div class="row">
+        <input id="sb-id" type="text" inputmode="numeric" placeholder="e.g. 123456">
+        <button id="sb-load">Load plan</button>
+      </div>
+      <p class="hint" id="sb-status">No plan loaded.</p>
+      <p class="hint">The ID is stored server-side (.env file): it becomes
+      the default for every device.</p>
+      <button id="btn-freeflight">Free flight — unload the plan</button>
+      <p class="hint">Removes the route, profile and plan bar on every
+      connected screen. Load a plan again whenever you want.</p>
+    </section>
+
+    <section>
+      <h3>Display size</h3>
+      <label for="ui-scale">Interface scale: <b id="ui-scale-val">100%</b></label>
+      <input id="ui-scale" type="range" min="80" max="170" step="5" value="100">
+      <p class="hint">Live preview — scales the PFD, panels, buttons and
+      map labels. Saved per device.</p>
+      <label class="row" style="margin-top:10px">
+        <input type="checkbox" id="chk-autozoom" checked> Automatic zoom
+        (adapts to the flight phase)</label>
+      <p class="hint">Off: the aircraft stays centered, but the +/−
+      buttons control the zoom level freely.</p>
+      <label class="row" style="margin-top:10px">
+        <input type="checkbox" id="chk-awake"> Keep screen awake (anti-sleep
+        for long flights)</label>
+      <p class="hint">Uses the Wake Lock API when available, with a
+      no-sleep fallback for plain-HTTP connections.</p>
+    </section>
+
+    <section>
+      <h3>Online network traffic</h3>
+      <label class="row"><input type="checkbox" id="net-vatsim">
+        VATSIM <span class="net-dot vatsim"></span></label>
+      <label class="row"><input type="checkbox" id="net-ivao">
+        IVAO <span class="net-dot ivao"></span></label>
+      <p class="hint">Both can be shown at once — VATSIM in orange, IVAO in
+      cyan. Refreshed every 20 s (free public feeds).</p>
+    </section>
+
+    <section>
+      <h3>OpenAIP (optional)</h3>
+      <label for="oaip-key">openaip.net API key (free)</label>
+      <input id="oaip-key" type="text" placeholder="paste your key for the VFR layer">
+      <p class="hint">Enables the VFR tile layer AND the vector airspaces
+      with "entering airspace" alerts (from zoom 8). Stored server-side
+      (.env), like the SimBrief ID: set once, shared by every device.</p>
+    </section>
+
+    <section>
+      <h3>Flight history</h3>
+      <div class="row">
+        <a class="btn" href="/api/track.gpx" download>Export GPX</a>
+        <a class="btn" href="/api/track.kml" download>Export KML</a>
+        <button id="btn-clear-track" class="danger">Clear track</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>About</h3>
+      <p class="hint">MSFS Tablet Tracker <span id="cfg-version">—</span> ·
+      broadcast <span id="cfg-hz">—</span> Hz · SimConnect</p>
+    </section>
+
+    <button id="settings-close">Close</button>
+  </aside>
+
+  <script src="app.js?v=2.0.0"></script>
+</body>
+</html>

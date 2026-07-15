@@ -1,4 +1,4 @@
-# MSFS Tablet Tracker (v2.0.0)
+# MSFS Tablet Tracker (v2.1.0)
 
 Real-time tracking of your Microsoft Flight Simulator aircraft on a tablet, phone or second screen, over your local network. The PC running MSFS hosts a small Python server; any tablet on the same Wi-Fi displays an interactive map that follows the aircraft.
 
@@ -131,6 +131,8 @@ The resulting `dist\MSFS-Tablet-Tracker.exe` is self-contained (Python interpret
 - Map rendering: Leaflet (BSD).
 
 ## Changelog
+
+**2.1.0** (2026-07-15): clean map mode. A toolbar button (👁) hides all the interface chrome for a distraction-free moving map, and brings it back with a second press or Escape.
 
 **2.0.0** (2026-07-07) — massive release: VATSIM/IVAO traffic, vector airspaces with alerts, fuel tracking, tap-to-tune radios, flight cards, 21 achievements, "all my flights" heatmap, plus a deep accuracy pass (magnetic HSI, ground-track prediction, airspace altitude datums, sim-rate-proof speeds, real touchdown G peak) and reliability hardening for distribution.
 

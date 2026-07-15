@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0 — 2026-07-15
+
+### New features
+
+- **Clean map mode**: a new toolbar button (👁) hides all the interface chrome
+  at once (toolbar buttons, PFD, HSI, system bar, plan bar, status pill and
+  the map zoom/layer controls) for a distraction-free moving map. The button
+  stays in place and turns blue while active; press it again, or Escape, to
+  bring everything back. Safety alerts (stall and overspeed), the connection
+  banner and the landing card stay visible. The mode is per-session, so a page
+  reload always returns to the full interface.
+
 ## 2.0.0 — 2026-07-07
 
 Massive release building on the 1.0 foundation: online traffic, airspaces,

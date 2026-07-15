@@ -694,9 +694,10 @@ function overlayWanted(name) {
   return name in ovState ? !!ovState[name] : !!OVERLAY_DEFAULTS[name];
 }
 
-/* Apply saved/default state to the statically-registered overlays
-   (the dynamic VFR chart applies its state where it gets registered) */
-for (const [name, layer] of Object.entries({
+/* Named map of the statically-registered overlays (the dynamic VFR chart
+   is added separately when a key is set). Reused by the initial apply and
+   by the "clean map" / "restore defaults" buttons in Settings. */
+const OVERLAY_LAYERS = {
   "Prediction 1/2/5 min": predLayer,
   "Airports": airportLayer,
   "Gates / stands": gateLayer,
@@ -705,9 +706,35 @@ for (const [name, layer] of Object.entries({
   "Airspaces": airspaceLayer,
   "Flight plan": planLayer,
   "Approach axes": approachLayer,
-})) {
+};
+
+/* Every overlay currently registered, including the dynamic VFR chart. */
+function allOverlays() {
+  const o = { ...OVERLAY_LAYERS };
+  if (oaipLayer) o["VFR chart (OpenAIP)"] = oaipLayer;
+  return o;
+}
+
+/* Apply saved/default state to the statically-registered overlays */
+for (const [name, layer] of Object.entries(OVERLAY_LAYERS)) {
   if (overlayWanted(name)) layer.addTo(map);
   else map.removeLayer(layer);
+}
+
+/* Hide every overlay for a clean map (just the aircraft + its trail).
+   Removing a layer fires 'overlayremove', which unchecks the layer-control
+   box AND persists the new state, so a clean map survives reloads. */
+function hideAllOverlays() {
+  for (const layer of Object.values(allOverlays()))
+    if (map.hasLayer(layer)) map.removeLayer(layer);
+}
+
+/* Put the overlays back to their first-run defaults. */
+function restoreDefaultOverlays() {
+  for (const [name, layer] of Object.entries(allOverlays())) {
+    if (OVERLAY_DEFAULTS[name]) { if (!map.hasLayer(layer)) layer.addTo(map); }
+    else if (map.hasLayer(layer)) map.removeLayer(layer);
+  }
 }
 
 /* Persist every toggle from the layers control */
@@ -1749,10 +1776,26 @@ document.getElementById("settings-close").addEventListener("click", () =>
 document.getElementById("settings-x").addEventListener("click", () =>
   openSettings(false));
 
-/* Escape closes whatever panel is open (desktop / second-screen use;
-   tablets keep the tap-outside gesture). */
+/* Clean-map mode: one toolbar toggle hides every UI chrome for a
+   distraction-free map. The toggle itself stays in place and turns blue
+   (.active) like the other mode buttons; press it again (or Escape) to
+   bring everything back. Session-only (not persisted) so a page reload
+   never leaves the pilot staring at a blank map with no way back. */
+const btnHideUI = document.getElementById("btn-hideui");
+function setHideUI(on) {
+  if (on) closePanels();          // don't strand a panel under the hidden UI
+  document.body.classList.toggle("hide-ui", on);
+  btnHideUI.classList.toggle("active", on);
+}
+btnHideUI.addEventListener("click", () =>
+  setHideUI(!document.body.classList.contains("hide-ui")));
+
+/* Escape closes whatever panel is open, or exits clean-map mode first
+   (desktop / second-screen use; tablets keep the tap-outside gesture). */
 document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Escape") closePanels();
+  if (ev.key !== "Escape") return;
+  if (document.body.classList.contains("hide-ui")) setHideUI(false);
+  else closePanels();
 });
 
 /* SimBrief — the ID is stored server-side (.env): pre-filled from
@@ -1944,6 +1987,16 @@ oaipInput.addEventListener("change", () => {
   refreshAirspaces();          // airspaces use the same key
 });
 map.on("overlayadd", (e) => { if (e.name === "Airspaces") refreshAirspaces(); });
+
+/* Clean map / restore default overlays (Settings → Map overlays) */
+document.getElementById("btn-clean-map").addEventListener("click", () => {
+  hideAllOverlays();
+  showToast("Clean map: all overlays hidden.", "success");
+});
+document.getElementById("btn-default-map").addEventListener("click", () => {
+  restoreDefaultOverlays();
+  showToast("Default overlays restored.", "success");
+});
 
 /* Track clearing — wipe everything locally right away (map trail, profile
    data) without waiting for the server round-trip, then tell the server so

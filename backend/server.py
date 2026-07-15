@@ -72,7 +72,7 @@ else:
     BUNDLE = ROOT
 load_dotenv(ROOT / ".env")
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8765"))

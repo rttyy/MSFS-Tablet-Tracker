@@ -154,6 +154,22 @@ body.night .leaflet-tile-pane { filter: brightness(0.6) contrast(1.05) saturate(
 .tool:active { transform: scale(0.92); }
 .tool.active { background: var(--accent); color: #fff; border-color: transparent; }
 
+/* Clean-map mode: "Hide interface" strips all chrome for a distraction-free
+   map. Safety alerts (stall/overspeed), the connection banner and the landing
+   card stay visible; the single restore button below brings the UI back. */
+body.hide-ui #pfd,
+body.hide-ui #plan-bar,
+body.hide-ui #sys-bar,
+body.hide-ui #hsi,
+body.hide-ui #profile-strip,
+body.hide-ui #status-pill,
+body.hide-ui .leaflet-control-zoom,
+body.hide-ui .leaflet-control-layers,
+body.hide-ui .leaflet-control-scale,
+/* Every toolbar button hides EXCEPT the toggle itself, which stays in its
+   place (bottom of the column) and turns blue via the .active state. */
+body.hide-ui #toolbar .tool:not(#btn-hideui) { display: none !important; }
+
 /* "Tracking off" cue: the recenter button pulses gently */
 .tool.pulse { animation: pulse 1.6s infinite; }
 @keyframes pulse {

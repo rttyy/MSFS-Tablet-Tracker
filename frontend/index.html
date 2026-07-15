@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=2.0.0">
+  <link rel="stylesheet" href="style.css?v=2.1.0">
 </head>
 <body>
   <!-- ======================= MAP ======================= -->
@@ -100,6 +100,7 @@
     <button id="btn-night" class="tool" title="Night mode">☾</button>
     <button id="btn-fullscreen" class="tool" title="Fullscreen">⛶</button>
     <button id="btn-settings" class="tool" title="Settings">⚙</button>
+    <button id="btn-hideui" class="tool" title="Hide interface (clean map)">👁</button>
   </nav>
 
   <!-- ================= Toast container ================= -->
@@ -231,6 +232,18 @@
     </section>
 
     <section>
+      <h3>Map overlays</h3>
+      <div class="row">
+        <button id="btn-clean-map">Clean map (hide all)</button>
+        <button id="btn-default-map">Restore defaults</button>
+      </div>
+      <p class="hint">Hide every overlay (airports, gates, traffic,
+      airspaces, route, heatmap) for a clean map with just your aircraft
+      and its trail. Re-enable any single layer from the map's layer button
+      (top left) whenever you want.</p>
+    </section>
+
+    <section>
       <h3>Online network traffic</h3>
       <label class="row"><input type="checkbox" id="net-vatsim">
         VATSIM <span class="net-dot vatsim"></span></label>
@@ -267,6 +280,6 @@
     <button id="settings-close">Close</button>
   </aside>
 
-  <script src="app.js?v=2.0.0"></script>
+  <script src="app.js?v=2.1.0"></script>
 </body>
 </html>
